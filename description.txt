@@ -1,0 +1,1 @@
+This mod adds containers for Technic that store a single type of item in large amounts. The containers are simple, portable, and upgradeable.

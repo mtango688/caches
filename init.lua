@@ -1,4 +1,4 @@
--- Minetest 0.4.14 mod: Caches
+-- Minetest mod: Caches
 -- requires default, Technic, Pipeworks, and Moreores
 
 -- license: WTFPL
@@ -246,6 +246,19 @@ local function can_access(pos, player)
 	return true
 end
 
+-- update description in itemstack
+
+local function update_description(item, name, count, capacity)
+	local i = "Empty"
+	if name ~= "air" then
+		local def = minetest.registered_items[name]
+		if def and def.description then i = def.description end
+	end
+
+	local d = i.." "..tostring(count).." / "..tostring(capacity)
+	item:get_meta():set_string("description", d)
+end
+
 -- other features
 
 minetest.register_on_player_receive_fields(function(player, formname, fields)
@@ -310,11 +323,14 @@ minetest.register_on_player_receive_fields(function(player, formname, fields)
 		local data = { name = name, count = count, locked = locked }
 		local item = ItemStack(minetest.get_node(pos).name)
 		item:set_metadata(minetest.serialize(data))
+		update_description(item, name, count, capacity)
+
 		if inv:room_for_item("main", item) then
 			inv:add_item("main", item)
 		else
 			minetest.add_item(player:getpos(), item)
 		end
+
 		minetest.remove_node(pos)
 		local obj = find_visual(pos)
 		if obj then obj:remove() end
@@ -388,6 +404,15 @@ minetest.register_on_craft(function(itemstack, player, old_craft_grid, craft_inv
 			if minetest.get_item_group(old:get_name(), "caches") > 0 then
 				-- copy old cache meta to output stack
 				itemstack:set_metadata(old:get_metadata())
+				local data = minetest.deserialize(old:get_metadata())
+				if data then
+					local c = 0
+					local n = string.sub(itemstack:get_name(), 8)
+					for _, tier in pairs(tiers) do
+						if n == tier.name then c = tier.capacity end
+					end
+					update_description(itemstack, data.name, data.count, c)
+				end
 				return
 			end
 		end
